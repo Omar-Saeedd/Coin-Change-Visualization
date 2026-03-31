@@ -135,7 +135,7 @@ No external libraries are required.
 Clone the repository:
 
 ```
-git clone https://github.com/yourusername/coin-change-dp-visualization.git
+git clone https://github.com/omar-saeedd/coin-change-dp-visualization.git
 ```
 
 Open the project by loading:
