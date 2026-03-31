@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coin Change Algorithm Visualizer</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --panel-bg: #161b22;
+            --text-main: #e6edf3;
+            --text-muted: #8b949e;
+            --accent-color: #58a6ff;
+            --btn-bg: #21262d;
+            --btn-hover: #30363d;
+            --highlight-compare: #f85149;
+            --highlight-update: #3fb950;
+            --highlight-accent: #d29922;
+            --default-box: #262c36;
+            --border-color: #30363d;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Removed external font dependencies for offline reliability */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            color: var(--accent-color);
+            font-size: 1.8em;
+            margin: 0;
+        }
+
+        .header-meta {
+            font-size: 0.85em;
+            color: var(--text-muted);
+        }
+
+        /* Two Column Layout */
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .controls {
+            width: 380px;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+        }
+
+        .controls > * {
+            flex-shrink: 0;
+        }
+
+        .visualization {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            min-height: 0; /* Allow flex column to shrink below content size */
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+            }
+            .controls {
+                width: 100%;
+                max-height: 35%;
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+            }
+            .visualization {
+                max-height: 65%;
+            }
+        }
+
+        h1, h2, h3 { color: var(--accent-color); }
+        
+        h2 { font-size: 1.1em; margin-bottom: 10px; margin-top: 0; }
+        h3 { font-size: 0.95em; margin: 0 0 10px 0; }
+        h4 { font-size: 0.9em; margin: 10px 0 6px 0; }
+        
+        .section {
+            background: var(--default-box);
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label { 
+            font-size: 0.85em; 
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+        
+        input[type="text"], input[type="number"], input[type="range"] {
+            background: var(--bg-color);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* Base Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            padding: 0;
+            margin: 12px 0;
+            background: transparent; /* Ensures the input itself doesn't have a solid background */
+            cursor: pointer;
+            outline: none;
+        }
+
+        /* WebKit (Chrome, Safari, Edge) Track */
+        input[type="range"]::-webkit-slider-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5); /* Lighter, semi-transparent track for visibility */
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* WebKit Thumb (Keep your existing thumb styles, just ensuring alignment) */
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: 2px solid var(--panel-bg);
+            margin-top: -5px; /* Centers the thumb on the 8px track */
+            transition: all 0.15s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* WebKit Thumb Hover/Active states */
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #79c0ff;
+            transform: scale(1.15);
+        }
+        input[type="range"]::-webkit-slider-thumb:active {
+            background: #58a6ff;
+            transform: scale(1.2);
+        }
+
+        /* Firefox Track */
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 4px;
+            border: 1px solid rgba(0, 0, 0, 0.3);
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Firefox Thumb */
+        input[type="range"]::-moz-range-thumb {
+            width: 14px; /* Firefox includes borders in width differently sometimes */
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent-color);
+            cursor: pointer;
+            border: 2px solid var(--panel-bg);
+            transition: all 0.15s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        /* Firefox Thumb Hover/Active states */
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #79c0ff;
+            transform: scale(1.15);
+        }
+        input[type="range"]::-moz-range-thumb:active {
+            background: #58a6ff;
+            transform: scale(1.2);
+        }
+
+        button {
+            background: var(--btn-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background: var(--btn-hover);
+            border-color: var(--accent-color);
+        }
+
+        button:disabled { 
+            opacity: 0.5; 
+            cursor: not-allowed; 
+        }
+
+        button.primary {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        button.primary:hover {
+            background: #79c0ff;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn-row button {
+            flex: 1;
+            min-width: 70px;
+            padding: 12px 16px;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            font-size: 0.85em;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: var(--bg-color);
+            padding: 8px;
+            border-radius: 4px;
+            border-left: 3px solid var(--accent-color);
+        }
+
+        .stat-label { color: var(--text-muted); }
+        .stat-value { 
+            font-weight: bold;
+            color: var(--accent-color);
+            font-size: 1.1em;
+        }
+
+        .status-info {
+            font-size: 0.85em;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px;
+            background: var(--bg-color);
+            border-radius: 4px;
+        }
+
+        .done-indicator {
+            display: none;
+            padding: 4px 10px;
+            background: var(--highlight-update);
+            color: white;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: bold;
+            animation: pulse 1s ease-in-out infinite;
+        }
+
+        .done-indicator.show {
+            display: inline-block;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+
+        /* Visualization */
+        svg {
+            display: block;
+            width: 100%;
+        }
+
+        #viz-svg {
+            background: var(--panel-bg);
+        }
+
+        #tree-svg {
+            display: block;
+            margin: 0 auto;
+            width: 100%;
+            height: 400px;
+            overflow: visible; /* Prevents edge nodes from being cut off */
+        }
+
+        #tree-svg g {
+            transition: all 0.3s ease-in-out; /* Smooth color and opacity transitions */
+        }
+
+        .tree-node {
+            transition: transform 0.25s ease, opacity 0.25s ease;
+        }
+
+        .tree-node:hover {
+            transform: scale(1.1);
+        }
+
+        .tree-edge {
+            stroke-dasharray: 6;
+            animation: edgeFlow 1.2s linear infinite;
+        }
+
+        @keyframes edgeFlow {
+            from { stroke-dashoffset: 0; }
+            to { stroke-dashoffset: 12; }
+        }
+
+        .overlap-node {
+            background: #ffb86c;
+            border: 2px solid #ff8800;
+        }
+
+        .legend {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            font-size: 0.8em;
+            padding: 8px;
+            background: var(--default-box);
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .legend-item { 
+            display: flex; 
+            align-items: center; 
+            gap: 6px;
+        }
+
+        .color-box { 
+            width: 16px; 
+            height: 16px; 
+            border-radius: 3px; 
+            border: 1px solid var(--border-color);
+        }
+
+        .explanation-box {
+            background: var(--default-box);
+            padding: 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .explanation-box p {
+            margin: 6px 0;
+        }
+
+        .explanation-box p:first-child {
+            margin-top: 0;
+        }
+
+        .explanation-box p:last-child {
+            margin-bottom: 0;
+        }
+
+        .key-concept {
+            background: rgba(88, 166, 255, 0.1);
+            border-left: 3px solid var(--accent-color);
+            padding: 12px;
+            border-radius: 3px;
+            font-size: 0.85em;
+            margin: 10px 0 0 0;
+            line-height: 1.6;
+        }
+
+        .pseudocode {
+            background: #0d0d0d;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.85em;
+            line-height: 1.6;
+            overflow-x: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .pseudocode-line { 
+            padding: 2px 4px; 
+            margin: 2px 0;
+            cursor: help;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .pseudocode-line:hover {
+            background: rgba(88, 166, 255, 0.15);
+        }
+
+        .pseudocode-line.active { 
+            background-color: rgba(88, 166, 255, 0.3);
+            border-left: 2px solid var(--accent-color);
+            padding-left: 2px;
+        }
+
+        .line-number {
+            color: var(--text-muted);
+            margin-right: 8px;
+            min-width: 20px;
+            display: inline-block;
+            text-align: right;
+        }
+
+        .pseudocode-line .tooltiptext {
+            visibility: hidden;
+            background-color: var(--accent-color);
+            color: var(--bg-color);
+            text-align: left;
+            padding: 8px 12px;
+            border-radius: 4px;
+            position: absolute;
+            z-index: 100; /* Ensure it stays above other elements */
+            bottom: 110%; /* Lift it higher */
+            left: 0;
+            width: 240px; /* Wider for better readability */
+            font-size: 0.8em;
+            opacity: 0;
+            transition: opacity 0.3s;
+            white-space: normal; /* Allow text to wrap so it doesn't cut off */
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            pointer-events: none;
+        }
+
+        .pseudocode-line:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .collapsible {
+            cursor: pointer;
+            padding: 10px;
+            background: var(--default-box);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            user-select: none;
+        }
+
+        .collapsible:hover {
+            background: var(--btn-hover);
+        }
+
+        .collapsible.active {
+            background: rgba(88, 166, 255, 0.1);
+            border-color: var(--accent-color);
+        }
+
+        .collapse-content {
+            display: none;
+            padding: 12px;
+            background: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .collapse-content.show {
+            display: block;
+        }
+
+        .collapse-content h4 {
+            color: var(--accent-color);
+            margin: 8px 0 4px 0;
+        }
+
+        .comparison-box {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 10px 0;
+            font-size: 0.85em;
+        }
+
+        .comparison-item {
+            background: var(--default-box);
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+        }
+
+        .comparison-item strong {
+            color: var(--accent-color);
+        }
+
+        .grow-chart {
+            min-height: 250px;
+            background: var(--default-box);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        /* Step Table Styles */
+        .step-table-container {
+            width: 100%;
+            overflow-x: auto;
+            background: var(--default-box);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .step-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+
+        .step-table th {
+            background: var(--panel-bg);
+            color: var(--accent-color);
+            padding: 12px 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .step-table th:first-child {
+            width: 40%;
+        }
+
+        .step-table th:last-child {
+            width: 60%;
+            text-align: right;
+        }
+
+        .step-table td {
+            padding: 12px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+            word-break: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .step-table tr:hover {
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .step-table .label {
+            color: var(--text-muted);
+            font-weight: 500;
+            text-align: left;
+            width: 40%;
+        }
+
+        .step-table .value {
+            color: var(--accent-color);
+            font-weight: 600;
+            font-family: 'Monaco', 'Menlo', monospace;
+            text-align: right;
+            width: 60%;
+        }
+
+        .step-table .step-desc {
+            padding: 10px 8px;
+            background: rgba(88, 166, 255, 0.08);
+            border-left: 3px solid var(--accent-color);
+            font-style: italic;
+        }
+
+        .greedy-trail {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .trail-pill {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: var(--highlight-update);
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .trail-separator {
+            padding: 4px 8px;
+            color: var(--text-muted);
+            font-size: 0.8em;
+        }
+
+        .trail-stuck {
+            padding: 4px 10px;
+            border-radius: 12px;
+            background: var(--highlight-compare);
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+        }
+
+        #coins-breakdown {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.08) 0%, transparent 100%);
+            border: 1px solid rgba(63, 185, 80, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div>
+        <h1>Coin Change Algorithm Visualizer <span style="font-size: 0.7em; color: var(--text-muted); font-weight: normal;">by Omar Saeed</span></h1>
+        <div class="header-meta">BCS 309 – Algorithms I | Dr. Arash Kermani</div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- LEFT PANEL: Controls -->
+    <div class="controls">
+        <!-- Algorithm Overview at Top -->
+        <div class="section" style="border-left: 4px solid var(--accent-color); background: rgba(88, 166, 255, 0.05);">
+            <h2>📚 Lecture: The DP Approach</h2>
+            <p style="font-size: 0.85em; margin-bottom: 8px;">The <strong>Change-Making Problem</strong> seeks the absolute minimum coins to sum to <em>W</em>. This is a classic optimization problem.</p>
+            
+            <div class="key-concept">
+                <strong>Optimal Substructure:</strong> The best solution for an amount <em>i</em> is built using the best solutions already found for smaller amounts.
+                <br><br>
+                <code style="color: var(--accent-color); font-size: 1.1em;">dp[i] = min(dp[i], dp[i - coin] + 1)</code>
+            </div>
+
+            <h4 style="margin-top:10px;">The DP Philosophy</h4>
+            <ul style="font-size: 0.85em; margin-left: 18px; color: var(--text-muted); line-height: 1.5;">
+                <li><strong>Tabulation:</strong> We solve for $1, $2, $3... in order. By "memoizing" (saving) these in a table, we never calculate the same amount twice.</li>
+                <li><strong>The Greedy Trap:</strong> A Greedy algorithm picks the largest coin first (a <em>local</em> choice). This often misses the <strong>Global Optimum</strong> (the <em>absolute</em> best total solution) for non-standard coins.</li>
+                <li><strong>Global Optimum:</strong> The single best answer that exists. DP guarantees to find it by exploring every possible combination.</li>
+            </ul>
+        </div>
+
+        <!-- Input Section -->
+        <div class="section">
+            <h3>Input</h3>
+            <div class="control-group">
+                <label for="input-coins">Coins (comma separated)</label>
+                <input type="text" id="input-coins" value="1, 3, 4">
+                <label for="input-target">Target Amount</label>
+                <input type="number" id="input-target" value="6" min="1" max="100">
+            </div>
+        </div>
+
+        <!-- Quick Examples -->
+        <div class="section">
+            <h3>Quick Examples</h3>
+            <div class="btn-row">
+                <button onclick="loadPreset([1, 2, 5], 11)">Standard</button>
+                <button onclick="loadPreset([1, 3, 4], 6)">⚠ Greedy Fails</button>
+                <button onclick="loadPreset([2, 4, 6], 7)">✗ Impossible</button>
+            </div>
+        </div>
+
+        <!-- Playback Controls -->
+        <div class="section">
+            <h3>Playback</h3>
+            <div class="btn-row">
+                <button id="btn-build" class="primary" onclick="buildSteps()">Build Steps</button>
+                <button id="btn-step" onclick="stepForward()" disabled>Step</button>
+            </div>
+            <div class="btn-row">
+                <button id="btn-play" onclick="playAnim()" disabled>▶ Play</button>
+                <button id="btn-pause" onclick="pauseAnim()" disabled>⏸ Pause</button>
+                <button id="btn-reset" onclick="reset()">↻ Reset</button>
+            </div>
+        </div>
+
+        <!-- Speed Control -->
+        <div class="section">
+            <label for="speed-slider">Speed: <span id="speed-label">1.0x</span></label>
+            <input type="range" id="speed-slider" min="0.25" max="4" step="0.25" value="1" oninput="updateSpeed()">
+        </div>
+
+        <!-- Statistics -->
+        <div class="section">
+            <h3>Statistics</h3>
+            <div class="stats-row">
+                <div class="stat">
+                    <div class="stat-label">Condition Checks</div>
+                    <div class="stat-value" id="stat-comparisons">0</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Updates</div>
+                    <div class="stat-value" id="stat-updates">0</div>
+                </div>
+            </div>
+            <div class="status-info" style="margin-top: 10px;">
+                <span id="status-text">Status: Idle</span>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span id="done-indicator" class="done-indicator">✅ ALGORITHM COMPLETE</span>
+                    <span id="step-counter">Step: 0 / 0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pseudocode -->
+        <div class="section">
+            <h3>Algorithm</h3>
+            <div class="pseudocode" id="pseudocode">
+                <div class="pseudocode-line" id="line-1">
+                    <span class="line-number">1</span>Sort coins ascending
+                    <span class="tooltiptext">Sorts denominations to explore smaller coins first.</span>
+                </div>
+                <div class="pseudocode-line" id="line-2">
+                    <span class="line-number">2</span>dp[0] ← 0; dp[1..W] ← ∞
+                    <span class="tooltiptext">Base case: 0 coins for amount 0. Rest initialized to infinity.</span>
+                </div>
+                <div class="pseudocode-line" id="line-3">
+                    <span class="line-number">3</span>for i ← 1 to W:
+                    <span class="tooltiptext">Iterate through all target amounts up to W.</span>
+                </div>
+                <div class="pseudocode-line" id="line-4">
+                    <span class="line-number">4</span>  for each coin in coins:
+                    <span class="tooltiptext">Try every available coin denomination.</span>
+                </div>
+                <div class="pseudocode-line" id="line-5">
+                    <span class="line-number">5</span>    if coin ≤ i:
+                    <span class="tooltiptext">Ensure the coin is not larger than the current amount i.</span>
+                </div>
+                <div class="pseudocode-line" id="line-6">
+                    <span class="line-number">6</span>      dp[i] ← min(dp[i], dp[i−coin] + 1)
+                    <span class="tooltiptext">Update with the minimum coins needed.</span>
+                </div>
+                <div class="pseudocode-line" id="line-7">
+                    <span class="line-number">7</span>return dp[W]
+                    <span class="tooltiptext">Return optimal result for the target amount W.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT PANEL: Visualization -->
+    <div class="visualization">
+        <!-- Legend -->
+        <div class="legend">
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--default-box);"></div>
+                <span>Uncalculated</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--highlight-compare);"></div>
+                <span>Comparing</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--highlight-update);"></div>
+                <span>Updated</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: var(--highlight-accent);"></div>
+                <span>Current</span>
+            </div>
+        </div>
+
+        <!-- Main Visualization -->
+        <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <h3 style="margin: 0;">DP Table Visualization</h3>
+                    <div id="viz-done-indicator" style="display: none; padding: 2px 8px; background: var(--highlight-update); color: white; border-radius: 12px; font-size: 0.7em; font-weight: bold;">✅ DONE</div>
+                </div>
+                <div style="width: 100%; overflow-x: auto; padding: 12px; background: var(--default-box); border-radius: 6px; border: 1px solid var(--border-color);">
+                    <svg id="viz-svg" style="min-width: 100%; height: 200px;"></svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coins Used -->
+        <div class="section">
+            <h3 style="margin-bottom: 8px;">💰 Coins Used</h3>
+            <div id="coins-breakdown" style="background: var(--default-box); padding: 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.85em; overflow-y: auto; min-height: 60px;">
+                <div style="color: var(--text-muted);">Build steps to see breakdown</div>
+            </div>
+        </div>
+
+        <!-- What are we doing? Section -->
+        <div class="section">
+            <div class="collapsible" onclick="toggleSection(this)">
+                <span>❓ What are we doing?</span>
+                <span>▼</span>
+            </div>
+            <div class="collapse-content">
+                <div id="what-are-we-doing" style="background: var(--bg-color); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85em; line-height: 1.6;">
+                    <p style="color: var(--text-muted);">Enter coins and click "Build Steps" to see a detailed walkthrough of how we find the minimum coins needed.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Step Table -->
+        <div class="section">
+            <h3>📖 Current Step</h3>
+            <div class="step-table-container">
+                <table class="step-table">
+                    <thead>
+                        <tr>
+                            <th>Property</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="label">Step</td>
+                            <td class="value"><span id="step-table-idx">0</span> / <span id="step-table-total">0</span></td>
+                        </tr>
+                        <tr>
+                            <td class="label">Action</td>
+                            <td class="value" id="step-table-type">—</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Amount (i)</td>
+                            <td class="value" id="step-table-i">—</td>
+                        </tr>
+                        <tr>
+                            <td class="label">Coin (j)</td>
+                            <td class="value" id="step-table-coin">—</td>
+                        </tr>
+                        <tr>
+                            <td class="label">DP Value</td>
+                            <td class="value" id="step-table-dp">—</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="step-desc" id="step-table-desc">Enter coins and a target amount, then click "Build Steps" to begin.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>📜 Step History Log</h3>
+            <p style="font-size: 0.8em; color: var(--text-muted); margin-bottom: 8px;">Click any row to jump to that step. Showing up to the last 30 steps.</p>
+            <div id="history-container" style="max-height: 250px; overflow-y: auto; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85em;">
+                    <thead style="position: sticky; top: 0; background: var(--panel-bg); z-index: 5;">
+                        <tr>
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--accent-color);">#</th>
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--accent-color);">Action</th>
+                            <th style="padding: 8px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--accent-color);">Details</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr><td colspan="3" style="padding: 8px; text-align: center; color: var(--text-muted);">Build steps to see history.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- CLO-1: Complexity Analysis -->
+        <div class="section">
+            <div class="collapsible" onclick="toggleSection(this)">
+                <span>📈 CLO-1: Complexity Analysis & Growth Curves</span>
+                <span>▼</span>
+            </div>
+            <div class="collapse-content">
+                <h4>Time Complexity</h4>
+                <p style="margin: 5px 0;"><strong>Best/Average/Worst:</strong> <span style="color: var(--accent-color);">O(n·W)</span> where <strong>n</strong> = coin types, <strong>W</strong> = target amount</p>
+                <p style="margin: 5px 0;"><strong>Current Input:</strong> n = <span id="clo1-n">0</span> coins, W = <span id="clo1-w">0</span> → <span id="clo1-ops" style="color: var(--accent-color);">0</span> total operations</p>
+                <p style="margin: 5px 0;"><strong>Space:</strong> O(W) – DP table with <span id="clo1-space">0</span> entries</p>
+
+                <h4 style="margin-top: 12px;">Growth Chart: DP vs Naive Recursion</h4>
+                <svg id="growth-svg" style="width: 100%; height: 240px; margin-top: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-color); display: block;"></svg>
+
+                <div class="comparison-box" style="margin-top: 10px;">
+                    <div class="comparison-item">
+                        <strong style="color: var(--highlight-update);">✅ Optimal DP</strong>
+                        <div style="font-size: 0.8em; margin-top: 4px;"><span id="clo1-dp-formula">O(n·W)</span><br/>Guaranteed optimal (polynomial)</div>
+                    </div>
+                    <div class="comparison-item">
+                        <strong style="color: var(--highlight-compare);">❌ Naive Recursion</strong>
+                        <div style="font-size: 0.8em; margin-top: 4px;"><span id="clo1-exp-formula">Exponential ≈ O(c^W)</span><br/>Grows exponentially</div>
+                    </div>
+                </div>
+
+                <h4 style="margin-top: 12px;">Operation Counter</h4>
+                <div id="op-counter" style="font-size: 0.85em; line-height: 1.8;">
+                    <div>Condition checks: <strong id="total-comps">0</strong></div>
+                    <div>Updates performed: <strong id="total-updates">0</strong></div>
+                    <div>DP cells filled: <strong id="cells-filled">0</strong> / <span id="total-cells">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CLO-2: Sorting Section -->
+        <div class="section">
+            <div class="collapsible" onclick="toggleSection(this)">
+                <span>📊 CLO-2: Sorting & Searching (Sorting Denominations)</span>
+                <span>▼</span>
+            </div>
+            <div class="collapse-content">
+                <p><strong>(Optional preprocessing)</strong><br/>The coins are sorted for visualization clarity. Dynamic Programming itself does not require sorted coins.</p>
+                <div id="clo2-content" style="background: var(--bg-color); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85em; margin: 10px 0;">
+                    <div style="color: var(--text-muted);">Build steps to see the sorting process.</div>
+                </div>
+                <div class="key-concept">
+                    <strong>Key Insight:</strong> Sorting is <strong>required</strong> for Greedy algorithms to work correctly, but DP remains optimal regardless of coin order. We sort here for visualization clarity—to explore smaller coins first.
+                </div>
+            </div>
+        </div>
+
+        <!-- CLO-3: Recursion Tree (Overlapping Subproblems) -->
+        <div class="section">
+            <div class="collapsible" onclick="toggleSection(this)">
+                <span>🌲 CLO-3: Naive Recursion Tree (Overlapping Subproblems)</span>
+                <span>▼</span>
+            </div>
+            <div class="collapse-content">
+                <p style="font-size: 0.85em; color: var(--text-muted); margin-bottom: 10px;">
+                    This tree visualizes the <strong>Naive Recursive</strong> approach. Notice how the same subproblems (nodes with the same amount) appear repeatedly—this is why DP is more efficient.
+                </p>
+                <div style="width: 100%; overflow: auto; background: var(--bg-color); border-radius: 6px; border: 1px solid var(--border-color); padding: 10px;">
+                    <svg id="tree-svg" style="min-width: 600px; height: 400px;"></svg>
+                </div>
+                <div id="tree-explanation" class="explanation-box" style="margin-top: 10px; font-size: 0.85em; line-height: 1.6;">
+                    <p style="color: var(--text-muted);">Build steps to animate the recursion tree and see subproblems expand.</p>
+                </div>
+                <div class="key-concept" style="margin-top: 10px;">
+                    <strong>DP vs. Recursion:</strong> While this tree grows exponentially, Dynamic Programming solves each unique subproblem exactly once, converting this entire tree into a simple 1D table.
+                </div>
+            </div>
+        </div>
+
+        <!-- CLO-3: DP vs Greedy -->
+        <div class="section">
+            <h3>⚡ CLO-3: Dynamic Programming vs Greedy</h3>
+            <p>This section demonstrates <strong>paradigm comparison</strong>: when DP succeeds while Greedy fails.</p>
+            <div id="greedy-comparison" style="background: var(--bg-color); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.9em;">
+                <p style="color: var(--text-muted);">Build steps to see DP vs Greedy comparison for your input.</p>
+            </div>
+            <div class="key-concept" style="margin-top: 10px;">
+                <strong>Classic Counterexample:</strong> Coins {1, 3, 4}, Amount 6
+                <br/>Greedy (largest first): 4 + 1 + 1 = <span style="color: var(--highlight-compare);">3 coins ❌</span>
+                <br/>DP (optimal): 3 + 3 = <span style="color: var(--highlight-update);">2 coins ✅</span>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    // ===================== STATE =====================
+    let coins = [];
+    let target = 0;
+    let steps = [];
+    let currentStepIdx = 0;
+    let maxStepReached = 0;
+    let isPlaying = false;
+    let animInterval = null;
+    let speedMs = 500;
+    
+    let comparisons = 0;
+    let updates = 0;
+    
+    let originalCoins = [];
+
+    // DOM Elements
+    const svg = document.getElementById('viz-svg');
+    const stepCounter = document.getElementById('step-counter');
+    const statusText = document.getElementById('status-text');
+    const greedyCompText = document.getElementById('greedy-comparison');
+    const clo2Content = document.getElementById('clo2-content');
+    const coinsBreakdown = document.getElementById('coins-breakdown');
+    
+    const btnBuild = document.getElementById('btn-build');
+    const btnStep = document.getElementById('btn-step');
+    const btnPlay = document.getElementById('btn-play');
+    const btnPause = document.getElementById('btn-pause');
+
+    // ===================== HELPERS =====================
+    function loadPreset(presetCoins, presetTarget) {
+        if (isPlaying) return; // Prevent state corruption during playback
+        document.getElementById('input-coins').value = presetCoins.join(', ');
+        document.getElementById('input-target').value = presetTarget;
+        reset();
+    }
+
+    function generateExplanation(coins, targetAmount, result, parent) {
+        let explanation = `<h3>Mathematical Analysis</h3>`;
+        explanation += `<p style="color: var(--text-muted); font-size: 0.9em; margin-bottom:10px;">
+            This visualization demonstrates <strong>Bottom-Up Tabulation</strong>. We solve for every integer <em>i</em> from 1 to <em>W</em>.
+        </p>`;
+
+        if (result === Infinity) {
+            explanation += `<div style="background: rgba(248, 81, 73, 0.1); padding: 12px; border-left: 4px solid var(--highlight-compare); margin: 10px 0;">
+                <strong>Result: Infeasible State ❌</strong><br/>
+                Target ${targetAmount} cannot be reached. State <code>dp[${targetAmount}]</code> remains <code>∞</code> (impossible).
+            </div>`;
+        } else {
+            explanation += `<div style="background: rgba(63, 185, 80, 0.1); padding: 12px; border-left: 4px solid var(--highlight-update); margin: 10px 0;">
+                <strong>Result: Optimal Solution Found ✅</strong><br/>
+                DP found that exactly ${result} coins are needed. This is the <strong>Global Optimum</strong> and guaranteed optimal.
+            </div>`;
+        }
+        return explanation;
+    }
+
+    function updateWhatAreDoing(coins, targetAmount, result, parent) {
+        const whatDiv = document.getElementById('what-are-we-doing');
+        if (whatDiv) {
+            whatDiv.innerHTML = generateExplanation(coins, targetAmount, result, parent);
+        }
+    }
+
+    function updateSpeed() {
+        const val = parseFloat(document.getElementById('speed-slider').value);
+        document.getElementById('speed-label').innerText = val + 'x';
+        speedMs = Math.round(500 / val);
+        if (isPlaying) {
+            pauseAnim();
+            playAnim();
+        }
+    }
+
+    function reset() {
+        pauseAnim();
+        steps = [];
+        currentStepIdx = 0;
+        maxStepReached = 0;
+        comparisons = 0;
+        updates = 0;
+        svg.innerHTML = '';
+        greedyCompText.innerHTML = '<p style="color: var(--text-muted);">Build steps to see DP vs Greedy comparison for your input.</p>';
+        clo2Content.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9em;">Build steps to see the sorting process.</div>';
+        coinsBreakdown.innerHTML = '<div style="color: var(--text-muted);">Build steps to see breakdown</div>';
+        document.getElementById('what-are-we-doing').innerHTML = '<p style="color: var(--text-muted);">Enter coins and click "Build Steps" to see a detailed walkthrough of how we find the minimum coins needed.</p>';
+        document.getElementById('done-indicator').classList.remove('show');
+        document.getElementById('viz-done-indicator').style.display = 'none';
+        
+        // Reset Step Table
+        document.getElementById('step-table-idx').textContent = '0';
+        document.getElementById('step-table-total').textContent = '0';
+        document.getElementById('step-table-type').textContent = '—';
+        document.getElementById('step-table-i').textContent = '—';
+        document.getElementById('step-table-coin').textContent = '—';
+        document.getElementById('step-table-dp').textContent = '—';
+        document.getElementById('step-table-desc').textContent = 'Enter coins and a target amount, then click "Build Steps" to begin.';
+        
+        // Reset CLO-1 to defaults
+        document.getElementById('clo1-n').textContent = '0';
+        document.getElementById('clo1-w').textContent = '0';
+        document.getElementById('clo1-ops').textContent = '0';
+        document.getElementById('clo1-space').textContent = '0';
+        document.getElementById('clo1-dp-formula').textContent = 'O(n·W)';
+        document.getElementById('clo1-exp-formula').textContent = 'Exponential ≈ O(c^W)';
+        document.getElementById('total-cells').textContent = '0';
+        document.getElementById('total-comps').textContent = '0';
+        document.getElementById('total-updates').textContent = '0';
+        document.getElementById('cells-filled').textContent = '0';
+        
+        updateUI();
+        clearPseudocode();
+        statusText.innerText = 'Status: Idle';
+        drawGrowthChart(0, 0);
+        document.getElementById('history-body').innerHTML = '<tr><td colspan="3" style="padding: 8px; text-align: center; color: var(--text-muted);">Build steps to see history.</td></tr>';
+        
+        btnStep.disabled = true;
+        btnPlay.disabled = true;
+        btnPause.disabled = true;
+        btnBuild.disabled = false;
+        document.querySelectorAll('.btn-row button[onclick^="loadPreset"]').forEach(btn => btn.disabled = false);
+    }
+
+    // ===================== CORE ALGORITHM =====================
+    function buildSteps() {
+        reset();
+        
+        let rawInput = document.getElementById('input-coins').value.split(',')
+            .map(n => parseInt(n.trim()))
+            .filter(n => !isNaN(n) && n > 0);
+        let rawCoins = Array.from(new Set(rawInput));
+        target = parseInt(document.getElementById('input-target').value);
+
+        if (rawCoins.length === 0 || isNaN(target) || target <= 0) {
+            alert("Please enter valid coins (positive) and target.");
+            return;
+        }
+
+        originalCoins = [...rawCoins];
+        coins = rawCoins.sort((a, b) => a - b);
+        
+        let dp = new Array(target + 1).fill(Infinity);
+        let parent = new Array(target + 1).fill(-1);
+        dp[0] = 0;
+        
+        // Sorting step
+        steps.push({
+            type: 'sort',
+            desc: `Optional preprocessing: coins sorted from ${originalCoins.join(', ')} → ${coins.join(', ')}. Sorting is not required for the DP algorithm but helps visualize smaller coins first.`,
+            dp: [...dp],
+            coins: [...coins],
+            parent: [...parent],
+            line: 1,
+            comparisons: 0,
+            updates: 0,
+            dpValue: '—',
+            isUpdated: new Array(target + 1).fill(false)
+        });
+
+        // Initialize
+        steps.push({
+            type: 'init',
+            desc: `Initialized dp array. dp[0] = 0 (base case: 0 coins needed for amount 0), rest = ∞ (impossible).`,
+            dp: [...dp],
+            coins: [...coins],
+            parent: [...parent],
+            line: 2,
+            comparisons: 0,
+            updates: 0,
+            dpValue: '—',
+            isUpdated: new Array(target + 1).fill(false)
+        });
+
+        // Main DP loop
+        let totalComps = 0;
+        let totalUpdates = 0;
+        let updatedIndices = new Array(target + 1).fill(false);
+
+        for (let i = 1; i <= target; i++) {
+            steps.push({
+                type: 'start-i',
+                i: i,
+                coin: -1,
+                desc: `Starting to calculate minimum coins for amount ${i}.`,
+                dp: [...dp],
+                coins: [...coins],
+                parent: [...parent],
+                line: 3,
+                comparisons: totalComps,
+                updates: totalUpdates,
+                dpValue: dp[i] === Infinity ? '∞' : dp[i],
+                isUpdated: [...updatedIndices]
+            });
+
+            for (let c of coins) {
+                steps.push({
+                    type: 'try-coin',
+                    i: i,
+                    coin: c,
+                    desc: `Trying coin ${c}...`,
+                    dp: [...dp],
+                    coins: [...coins],
+                    parent: [...parent],
+                    line: 4,
+                    compareIdx: undefined,
+                    comparisons: totalComps,
+                    updates: totalUpdates,
+                    dpValue: dp[i] === Infinity ? '∞' : dp[i],
+                    isUpdated: [...updatedIndices]
+                });
+
+                totalComps++; // Real comparison: c <= i && dp[i-c] !== Infinity
+                if (c <= i && dp[i - c] !== Infinity) {
+                    let prevVal = dp[i];
+                    let newVal = dp[i - c] + 1;
+                    
+                    steps.push({
+                        type: 'compare',
+                        i: i,
+                        coin: c,
+                        compareIdx: i - c,
+                        desc: `Coin ${c} ≤ ${i}. Compare: <span style="color: var(--highlight-accent);">dp[${i}]</span> = ${prevVal === Infinity ? '∞' : prevVal} vs <span style="color: var(--highlight-compare);">dp[${i-c}] + 1</span> = (${dp[i-c] === Infinity ? '∞' : dp[i-c]}) + 1 = ${newVal === Infinity ? '∞' : newVal}.`,
+                        dp: [...dp],
+                        coins: [...coins],
+                        parent: [...parent],
+                        line: 5,
+                        comparisons: totalComps,
+                        updates: totalUpdates,
+                        dpValue: dp[i] === Infinity ? '∞' : dp[i],
+                        isUpdated: [...updatedIndices]
+                    });
+
+                    totalComps++; // Real comparison: newVal < prevVal
+                    if (newVal < prevVal) {
+                        dp[i] = newVal;
+                        parent[i] = c;
+                        totalUpdates++;
+                        updatedIndices[i] = true;
+                        
+                        steps.push({
+                            type: 'update',
+                            i: i,
+                            coin: c,
+                            updateIdx: i,
+                            desc: `Found better solution! Updated <span style="color: var(--highlight-update);">dp[${i}]</span> = ${newVal} (using coin ${c}).`,
+                            dp: [...dp],
+                            coins: [...coins],
+                            parent: [...parent],
+                            line: 6,
+                            comparisons: totalComps,
+                            updates: totalUpdates,
+                            dpValue: newVal,
+                            isUpdated: [...updatedIndices]
+                        });
+                    }
+                } else if (c > i) {
+                    steps.push({
+                        type: 'skip',
+                        i: i,
+                        coin: c,
+                        desc: `Coin ${c} > ${i}. Cannot use. Skipping.`,
+                        dp: [...dp],
+                        coins: [...coins],
+                        parent: [...parent],
+                        line: 5,
+                        comparisons: totalComps,
+                        updates: totalUpdates,
+                        dpValue: dp[i] === Infinity ? '∞' : dp[i],
+                        isUpdated: [...updatedIndices]
+                    });
+                } else {
+                    steps.push({
+                        type: 'skip',
+                        i: i,
+                        coin: c,
+                        desc: `Cannot make amount ${i - c} (<span style="color: var(--highlight-compare);">dp[${i-c}]</span> = ∞). Skipping coin ${c}.`,
+                        dp: [...dp],
+                        coins: [...coins],
+                        parent: [...parent],
+                        line: 5,
+                        comparisons: totalComps,
+                        updates: totalUpdates,
+                        dpValue: dp[i] === Infinity ? '∞' : dp[i],
+                        isUpdated: [...updatedIndices]
+                    });
+                }
+            }
+            updatedIndices = new Array(target + 1).fill(false);
+        }
+
+        steps.push({
+            type: 'done',
+            desc: `Algorithm complete. Minimum coins for ${target}: ${dp[target] === Infinity ? 'IMPOSSIBLE' : dp[target]}.`,
+            dp: [...dp],
+            coins: [...coins],
+            parent: [...parent],
+            line: 7,
+            comparisons: totalComps,
+            updates: totalUpdates,
+            dpValue: dp[target] === Infinity ? '✗ IMPOSSIBLE' : dp[target],
+            isUpdated: new Array(target + 1).fill(false)
+        });
+
+        // Calculate and display comparisons
+        calculateGreedyComparison(dp[target], parent, coins, target);
+        calculateClo2(coins, originalCoins);
+        updateWhatAreDoing(coins, target, dp[target], parent);
+        drawRecursionTree(target > 5 ? 5 : target, coins);
+        
+        // Update CLO-1 with dynamic values
+        setTimeout(() => {
+            document.getElementById('clo1-n').textContent = coins.length;
+            document.getElementById('clo1-w').textContent = target;
+            document.getElementById('clo1-space').textContent = target + 1;
+            document.getElementById('total-cells').textContent = target + 1;
+            drawGrowthChart(target, coins.length);
+        }, 50);
+
+        btnStep.disabled = false;
+        btnPlay.disabled = false;
+        btnBuild.disabled = true;
+        
+        currentStepIdx = 0;
+        renderStep(0);
+        
+        statusText.innerText = 'Status: Ready - Click "Step" or "Play" to begin';
+    }
+
+    function calculateGreedyComparison(dpResult, parent, dpCoins, targetAmt) {
+        let greedyCoins = [...dpCoins].sort((a, b) => b - a);
+        let amount = targetAmt;
+        let greedyCoinsUsed = [];
+        
+        for (let c of greedyCoins) {
+            while (amount >= c) {
+                amount -= c;
+                greedyCoinsUsed.push(c);
+            }
+        }
+
+        let greedyCount = greedyCoinsUsed.length;
+        let greedySuccess = amount === 0;
+        let dpCount = dpResult === Infinity ? null : dpResult;
+
+        let html = '<div style="background: var(--bg-color); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color);">';
+        html += '<div style="font-size: 0.85em; line-height: 1.8;">';
+        
+        if (dpResult === Infinity) {
+            html += '<div><strong style="color: var(--highlight-compare);">❌ Both Fail (Impossible)</strong><br/>';
+            html += `Neither algorithm can make exactly ${targetAmt} with {${dpCoins.join(', ')}}.</div>`;
+        } else if(!greedySuccess) {
+            html += '<div><strong style="color: var(--highlight-compare);">❌ Greedy Algorithm Failed</strong><br/>';
+            html += `Attempted coins: `;
+            
+            // Build trail visualization
+            html += '<div class="greedy-trail">';
+            if (greedyCoinsUsed.length > 0) {
+                greedyCoinsUsed.forEach(coin => {
+                    html += `<span class="trail-pill">${coin}</span>`;
+                    html += `<span class="trail-separator">→</span>`;
+                });
+            }
+            html += `<span class="trail-stuck">[Stuck at ${amount}]</span>`;
+            html += '</div>';
+            
+            html += `<br/>DP: ${dpCount} coins (optimal) ✅</div>`;
+        } else if (greedyCount > dpCount) {
+            html += `<div><strong style="color: var(--highlight-compare);">⚠️  Greedy is Suboptimal</strong><br/>`;
+            html += `Greedy trail: `;
+            
+            // Build trail visualization
+            html += '<div class="greedy-trail">';
+            greedyCoinsUsed.forEach(coin => {
+                html += `<span class="trail-pill">${coin}</span>`;
+                html += `<span class="trail-separator">→</span>`;
+            });
+            html += `<span style="color: var(--highlight-compare); font-weight: bold;">${greedyCount} coins ❌</span>`;
+            html += '</div>';
+            
+            html += `<br/>DP optimal: ${dpCount} coins ✅</div>`;
+        } else {
+            html += `<div><strong style="color: var(--highlight-update);">✅ Both Give the Same Answer</strong><br/>`;
+            html += `Trail: `;
+            
+            // Build trail visualization
+            html += '<div class="greedy-trail">';
+            greedyCoinsUsed.forEach(coin => {
+                html += `<span class="trail-pill">${coin}</span>`;
+                html += `<span class="trail-separator">→</span>`;
+            });
+            html += `<span style="color: var(--highlight-update); font-weight: bold;">${greedyCount} coins ✅</span>`;
+            html += '</div>';
+            html += `DP also: ${dpCount} coins</div>`;
+        }
+        
+        html += '</div></div>';
+        greedyCompText.innerHTML = html;
+    }
+
+    function calculateClo2(sortedCoins, originalCoins) {
+        let html = '<div style="background: var(--bg-color); padding: 12px; border-radius: 4px; border: 1px solid var(--border-color); font-size: 0.85em;">';
+        html += `<strong>Preprocessing:</strong> {${originalCoins.join(', ')}} → {${sortedCoins.join(', ')}}<br><br>`;
+        html += `<div style="margin-top: 10px; padding: 10px; background: rgba(88, 166, 255, 0.05); border-left: 3px solid var(--accent-color);">`;
+        html += `<strong>CLO-2 Insight:</strong> Sorting is mandatory for <strong>Greedy</strong> algorithms. In <strong>DP</strong>, it provides a consistent logical flow for table updates.`;
+        html += `</div></div>`;
+        clo2Content.innerHTML = html;
+    }
+
+    // ===================== PLAYBACK =====================
+    function stepForward() {
+        if (currentStepIdx < steps.length - 1) {
+            currentStepIdx++;
+            renderStep(currentStepIdx);
+            
+            const doneIndicator = document.getElementById('done-indicator');
+            const vizDoneIndicator = document.getElementById('viz-done-indicator');
+            if (currentStepIdx === steps.length - 1) {
+                doneIndicator.classList.add('show');
+                vizDoneIndicator.style.display = 'inline-block';
+            } else {
+                doneIndicator.classList.remove('show');
+                vizDoneIndicator.style.display = 'none';
+            }
+        }
+    }
+
+    function playAnim() {
+        if (isPlaying || currentStepIdx >= steps.length - 1) return; // Guard against race conditions
+        isPlaying = true;
+        btnPlay.disabled = true;
+        btnPause.disabled = false;
+        statusText.innerText = 'Status: Playing';
+        
+        // Disable inputs while playing
+        document.getElementById('input-coins').disabled = true;
+        document.getElementById('input-target').disabled = true;
+        document.getElementById('btn-build').disabled = true;
+        document.querySelectorAll('.btn-row button[onclick^="loadPreset"]').forEach(btn => btn.disabled = true);
+        
+        animInterval = setInterval(() => {
+            stepForward();
+            if (currentStepIdx >= steps.length - 1) pauseAnim();
+        }, speedMs);
+    }
+
+    function pauseAnim() {
+        isPlaying = false;
+        clearInterval(animInterval);
+        btnPlay.disabled = currentStepIdx >= steps.length - 1;
+        btnPause.disabled = true;
+        statusText.innerText = currentStepIdx >= steps.length - 1 ? 'Status: Done' : 'Status: Paused';
+        
+        // Show done indicators ONLY if algorithm is completely done
+        const doneIndicator = document.getElementById('done-indicator');
+        const vizDoneIndicator = document.getElementById('viz-done-indicator');
+        if (currentStepIdx === steps.length - 1) {
+            doneIndicator.classList.add('show');
+            vizDoneIndicator.style.display = 'inline-block';
+        } else {
+            doneIndicator.classList.remove('show');
+            vizDoneIndicator.style.display = 'none';
+        }
+        
+        // Re-enable inputs when paused
+        document.getElementById('input-coins').disabled = false;
+        document.getElementById('input-target').disabled = false;
+        document.getElementById('btn-build').disabled = false;
+        document.querySelectorAll('.btn-row button[onclick^="loadPreset"]').forEach(btn => btn.disabled = false);
+    }
+
+    // ===================== RENDERING =====================
+    function renderStep(idx) {
+        const step = steps[idx];
+        stepCounter.innerText = `Step: ${idx + 1} / ${steps.length}`;
+        
+        highlightLine(step.line);
+        drawDPTable(step);
+        
+        // Update Step Table
+        document.getElementById('step-table-idx').textContent = idx + 1;
+        document.getElementById('step-table-total').textContent = steps.length;
+        document.getElementById('step-table-type').textContent = formatStepType(step.type);
+        document.getElementById('step-table-i').textContent = step.i !== undefined ? step.i : '—';
+        document.getElementById('step-table-coin').textContent = (step.coin !== undefined && step.coin > 0) ? step.coin : '—';
+        document.getElementById('step-table-dp').textContent = step.dpValue !== undefined ? step.dpValue : '—';
+        document.getElementById('step-table-desc').innerHTML = step.desc;
+        
+        // Update stats
+        document.getElementById('stat-comparisons').textContent = step.comparisons;
+        document.getElementById('stat-updates').textContent = step.updates;
+        document.getElementById('total-comps').textContent = step.comparisons;
+        document.getElementById('total-updates').textContent = step.updates;
+        const filled = step.dp.filter(v => v !== Infinity).length;
+        document.getElementById('cells-filled').textContent = filled;
+
+        // Update CLO-1 dynamic values
+        document.getElementById('clo1-n').textContent = step.coins.length;
+        document.getElementById('clo1-w').textContent = target;
+        document.getElementById('clo1-ops').textContent = step.comparisons + step.updates;
+        document.getElementById('clo1-space').textContent = target + 1;
+        document.getElementById('clo1-dp-formula').textContent = `O(${step.coins.length}·${target}) = O(${step.coins.length * target})`;
+        document.getElementById('clo1-exp-formula').textContent = `Exponential ≈ O(${step.coins.length}^${target})`;
+        document.getElementById('total-cells').textContent = target + 1;
+
+        // Update coins breakdown if final step
+        if (step.parent) {
+            let currentW = step.type === 'done' ? target : (step.i !== undefined ? step.i : 0);
+            updateCoinsBreakdown(step.parent, step.dp, currentW, step.type === 'done');
+        }
+        maxStepReached = Math.max(maxStepReached, idx);
+        updateHistoryTable(idx);
+        // This updates the tree to highlight the current amount 'i' being calculated
+        drawRecursionTree(target, coins, step.i);
+    }
+
+    function updateHistoryTable(currentIndex) {
+        const tbody = document.getElementById('history-body');
+        tbody.innerHTML = '';
+        
+        // Loop up to the highest step the user has revealed so far
+        for (let i = 0; i <= maxStepReached; i++) {
+            const s = steps[i];
+            const tr = document.createElement('tr');
+            tr.style.cursor = 'pointer';
+            tr.style.borderBottom = '1px solid var(--border-color)';
+            tr.style.transition = 'background 0.2s';
+            
+            // Highlight the currently active step
+            if (i === currentIndex) {
+                tr.style.background = 'rgba(88, 166, 255, 0.15)';
+                tr.style.borderLeft = '3px solid var(--accent-color)';
+            } else {
+                tr.onmouseover = () => tr.style.background = 'rgba(88, 166, 255, 0.05)';
+                tr.onmouseout = () => tr.style.background = 'transparent';
+            }
+            
+            tr.onclick = () => {
+                if (!isPlaying) {
+                    currentStepIdx = i;
+                    renderStep(i);
+                }
+            };
+            
+            tr.innerHTML = `
+                <td style="padding: 8px; color: var(--text-muted); width: 10%;">${i + 1}</td>
+                <td style="padding: 8px; color: var(--accent-color); width: 25%; font-weight: 500;">${formatStepType(s.type)}</td>
+                <td style="padding: 8px; color: var(--text-main); width: 65%;">${s.desc}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+        
+        // Only auto-scroll to the bottom if we are at the bleeding edge of the animation
+        if (currentIndex === maxStepReached) {
+            const container = document.getElementById('history-container');
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+
+    function buildRecursionTree(amount, depth = 0, parent = null, visited = null) {
+        if (visited === null) visited = new Map();
+        
+        const MAX_DEPTH = Math.min(8, Math.max(3, Math.floor(Math.log2(amount + 1))));
+        
+        if (amount < 0 || depth > MAX_DEPTH) return null;
+        
+        const isOverlap = visited.has(amount) ? visited.get(amount) + 1 : 1;
+        visited.set(amount, isOverlap);
+        
+        const node = {
+            amount: amount,
+            depth: depth,
+            children: [],
+            parent: parent,
+            isOverlap: isOverlap > 1,
+            overlapCount: isOverlap,
+            x: 0,
+            y: 0
+        };
+        
+        if (amount === 0 || depth >= MAX_DEPTH) return node;
+        
+        for (const coin of coins) {
+            const nextAmount = amount - coin;
+            if (nextAmount >= 0) {
+                const child = buildRecursionTree(nextAmount, depth + 1, node, visited);
+                if (child) node.children.push(child);
+            }
+        }
+        
+        return node;
+    }
+
+    function layoutTree(root) {
+        const levels = {};
+        
+        function traverse(node) {
+            if (!levels[node.depth]) levels[node.depth] = [];
+            levels[node.depth].push(node);
+            node.children.forEach(traverse);
+        }
+        
+        traverse(root);
+        
+        const levelHeight = 90;
+        const nodeSpacing = 70;
+        const containerWidth = document.getElementById('tree-svg').parentElement.clientWidth || 600;
+        
+        Object.keys(levels).forEach(level => {
+            const nodes = levels[level];
+            const width = Math.max(nodes.length * nodeSpacing, containerWidth);
+            
+            nodes.forEach((node, index) => {
+                node.x = (index * nodeSpacing) - (nodes.length * nodeSpacing) / 2 + containerWidth / 2;
+                node.y = parseInt(level) * levelHeight + 40;
+            });
+        });
+        
+        return levels;
+    }
+
+    // New global to track recursive history
+    let treeHistory = [];
+    
+    async function animateTree(root, coins) {
+        const treeSvg = document.getElementById('tree-svg');
+        const treeExplanation = document.getElementById('tree-explanation');
+        if (!treeSvg) return;
+        
+        treeSvg.innerHTML = '';
+        treeHistory = []; // Reset history
+        const nodeRadius = 18;
+        const visited = new Map();
+        
+        // Helper to create SVG elements (existing logic)
+        function createNode(node) {
+            const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            group.setAttribute('class', 'tree-node');
+            const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            circle.setAttribute('cx', node.x); circle.setAttribute('cy', node.y); circle.setAttribute('r', nodeRadius);
+            let color = node.isOverlap ? 'var(--highlight-compare)' : 'var(--accent-color)';
+            circle.setAttribute('fill', 'var(--panel-bg)');
+            circle.setAttribute('stroke', color);
+            circle.setAttribute('stroke-width', node.isOverlap ? '3' : '2');
+            group.appendChild(circle);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', node.x); text.setAttribute('y', node.y + 5);
+            text.setAttribute('text-anchor', 'middle'); text.setAttribute('fill', 'var(--text-main)');
+            text.setAttribute('font-size', '12px'); text.setAttribute('font-weight', 'bold');
+            text.textContent = node.amount;
+            group.appendChild(text);
+            return group;
+        }
+
+        async function drawNode(node) {
+            treeSvg.appendChild(createNode(node));
+            
+            if (!visited.has(node.amount)) visited.set(node.amount, 0);
+            visited.set(node.amount, visited.get(node.amount) + 1);
+            
+            const MAX_DEPTH = Math.min(8, Math.max(3, Math.floor(Math.log2(root.amount + 1))));
+            if (node.amount === 0 || node.depth >= MAX_DEPTH) return;
+            
+            await new Promise(r => setTimeout(r, 200)); // Faster draw speed
+            
+            for (const child of node.children) {
+                const coin = node.amount - child.amount;
+                
+                // Record the step for the scrollable list
+                treeHistory.push({
+                    parent: node.amount,
+                    coin: coin,
+                    result: child.amount,
+                    isOverlap: visited.get(child.amount) > 1
+                });
+
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', node.x); line.setAttribute('y1', node.y + nodeRadius);
+                line.setAttribute('x2', child.x); line.setAttribute('y2', child.y - nodeRadius);
+                line.setAttribute('stroke', 'var(--border-color)');
+                treeSvg.appendChild(line);
+                
+                await drawNode(child);
+            }
+        }
+        
+        await drawNode(root);
+        renderTreeSteps(root); // Call the new summary renderer
+    }
+    
+    function renderTreeSteps(root) {
+        const treeExplanation = document.getElementById('tree-explanation');
+        const totalNodes = countNodes(root);
+        
+        let html = `<div style="margin-bottom:15px;">
+            <strong>Recursion Complete:</strong> Generated <strong>${totalNodes}</strong> subproblems.
+        </div>`;
+
+        // Create the scrollable list container
+        html += `<div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border-color); padding: 5px; border-radius: 4px; background: var(--bg-color);">
+            <table style="width:100%; font-size: 0.85em; border-collapse: collapse;">
+                <thead style="position: sticky; top:0; background: var(--panel-bg);">
+                    <tr><th style="text-align:left; padding:4px; color: var(--accent-color);">Call</th><th style="text-align:left; padding:4px; color: var(--accent-color);">Action</th></tr>
+                </thead>
+                <tbody>`;
+
+        treeHistory.forEach((step, i) => {
+            const overlapStyle = step.isOverlap ? 'color: var(--highlight-compare); font-weight:bold;' : '';
+            html += `<tr style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding:4px;">#${i+1}</td>
+                <td style="padding:4px;">
+                    ${step.parent} - ${step.coin} → <strong>${step.result}</strong> 
+                    ${step.isOverlap ? '<span style="font-size:0.8em; color: var(--highlight-compare);">(Repeat)</span>' : ''}
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        
+        html += `<div class="key-concept" style="margin-top:10px;">
+            <strong>Lecture Insight:</strong> Red nodes in the tree represent <em>Overlapping Subproblems</em>. 
+            DP calculates these exactly once, while Recursion calculates them <strong>${treeHistory.filter(s => s.isOverlap).length}</strong> extra times.
+        </div>`;
+
+        treeExplanation.innerHTML = html;
+    }
+
+    function countNodes(node) {
+        let count = 1;
+        node.children.forEach(child => count += countNodes(child));
+        return count;
+    }
+
+    function drawRecursionTree(targetAmt, coins, highlightAmount = -1) {
+        const treeSvg = document.getElementById('tree-svg');
+        if (!treeSvg) return;
+        
+        const root = buildRecursionTree(targetAmt);
+        if (!root) {
+            treeSvg.innerHTML = '<text x="50%" y="50%" text-anchor="middle" fill="var(--text-muted)" font-size="14px">Tree too large to visualize</text>';
+            return;
+        }
+        
+        layoutTree(root);
+        animateTree(root, coins);
+    }
+
+    function formatStepType(type) {
+        const typeMap = {
+            'sort': '🔄 Sorting',
+            'init': '⚙️ Initialize',
+            'start-i': '⬆️ Loop Start (i)',
+            'try-coin': '🪙 Try Coin',
+            'compare': '⚖️ Compare',
+            'update': '✏️ Update',
+            'skip': '⏭️ Skip',
+            'done': '✅ Complete'
+        };
+        return typeMap[type] || type;
+    }
+
+    function highlightLine(lineNum) {
+        clearPseudocode();
+        const line = document.getElementById(`line-${lineNum}`);
+        const container = document.getElementById('pseudocode');
+        
+        if (line && container) {
+            line.classList.add('active');
+            
+            // Auto-scroll logic to keep the active line visible
+            const offsetTop = line.offsetTop - container.offsetTop;
+            container.scrollTo({ 
+                top: Math.max(0, offsetTop - 40), 
+                behavior: 'smooth' 
+            });
+        }
+    }
+
+    function clearPseudocode() {
+        for (let i = 1; i <= 7; i++) {
+            const line = document.getElementById(`line-${i}`);
+            if (line) line.classList.remove('active');
+        }
+    }
+
+    function updateCoinsBreakdown(parent, dp, w, isDone) {
+        let html = '<div style="font-size: 0.85em;">';
+        
+        // Handle uncalculated or 0 state
+        if (w === 0 || !parent) {
+            coinsBreakdown.innerHTML = '<div style="color: var(--text-muted);">Running algorithm to find breakdown...</div>';
+            return;
+        }
+
+        // Handle Impossible state
+        if (dp[w] === Infinity) {
+            if (isDone) {
+                html += '<div style="padding: 8px; background: rgba(248, 81, 73, 0.1); border: 1px solid var(--highlight-compare); border-radius: 4px; margin-bottom: 10px;">';
+                html += '<strong style="color: var(--highlight-compare);">❌ No Solution Found</strong>';
+                html += '<div style="font-size: 0.8em; color: var(--text-muted); margin-top: 4px;">Target cannot be reached with these coins.</div></div>';
+            } else {
+                html += `<div style="color: var(--text-muted);">Evaluating amount ${w}... (Currently unreachable)</div>`;
+            }
+            coinsBreakdown.innerHTML = html;
+            return;
+        }
+
+        // Trace back the coins used
+        let coinsList = [];
+        let current = w;
+        while (current > 0 && parent[current] !== -1) {
+            let coin = parent[current];
+            if (coin > 0) {
+                coinsList.push(coin);
+                current -= coin;
+            } else {
+                break;
+            }
+        }
+
+        // Render the breakdown
+        if (isDone) {
+             html += '<div style="padding: 8px; background: rgba(63, 185, 80, 0.1); border: 1px solid var(--highlight-update); border-radius: 4px; margin-bottom: 10px;">';
+             html += '<strong style="color: var(--highlight-update);">✅ Optimal Solution Found</strong></div>';
+        } else {
+             html += `<div style="margin-bottom: 8px; color: var(--text-muted);">Current best path for amount <strong style="color: var(--text-main);">${w}</strong>:</div>`;
+        }
+
+        html += `<strong style="color: var(--highlight-update);">Coins Used: ${coinsList.join(' + ')}</strong>`;
+        html += `<div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-color); color: var(--text-muted);">`;
+        html += `Total: ${coinsList.length} coins`;
+        html += '</div></div>';
+
+        coinsBreakdown.innerHTML = html;
+    }
+
+    // ===================== SVG VISUALIZATION =====================
+    function drawDPTable(step) {
+        svg.innerHTML = '';
+        
+        // Responsive box width based on target amount
+        const svgWidth = svg.clientWidth || 1000;
+        const maxBoxes = step.dp.length;
+        
+        // Increased base size for better visibility
+        let boxWidth = 75;
+        let boxHeight = 75;
+        
+        // Dynamically scale down ONLY if the combined width of the boxes exceeds the container space
+        if ((boxWidth + 3) * maxBoxes > (svgWidth - 60)) {
+            boxWidth = Math.max(25, (svgWidth - 60) / maxBoxes - 3);
+            boxHeight = boxWidth; // Keep the boxes perfectly square as they shrink
+        }
+        
+        // Force the SVG canvas to be wide enough to hold all boxes, triggering horizontal scroll if needed
+        const requiredWidth = 40 + maxBoxes * (boxWidth + 3) + 30;
+        svg.style.minWidth = Math.max(svgWidth, requiredWidth) + 'px';
+        
+        const startX = 30;
+        const startY = 30;
+
+        step.dp.forEach((val, index) => {
+            const x = startX + (index * (boxWidth + 3));
+            const y = startY;
+
+            let fill = 'var(--default-box)';
+            let stroke = 'var(--border-color)';
+            let strokeWidth = 1;
+
+            if (step.type === 'update' && index === step.updateIdx) {
+                fill = 'var(--highlight-update)';
+                stroke = 'var(--highlight-update)';
+                strokeWidth = 2;
+            } else if (step.isUpdated && step.isUpdated[index]) {
+                stroke = '#3fb950';
+                strokeWidth = 2;
+            } else if (step.type === 'compare' && index === step.compareIdx) {
+                fill = 'var(--highlight-compare)';
+                stroke = 'var(--highlight-compare)';
+                strokeWidth = 1;
+            } else if (step.i !== undefined && index === step.i) {
+                fill = 'var(--highlight-accent)';
+                stroke = 'var(--highlight-accent)';
+                strokeWidth = 2;
+            }
+
+            // Rectangle
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', x);
+            rect.setAttribute('y', y);
+            rect.setAttribute('width', boxWidth);
+            rect.setAttribute('height', boxHeight);
+            rect.setAttribute('fill', fill);
+            if (val === Infinity) {
+                rect.setAttribute('fill', '#1c2128');
+                rect.setAttribute('stroke-dasharray', '4,2');
+            } else {
+                rect.setAttribute('stroke-dasharray', 'none');
+            }
+            rect.setAttribute('stroke', stroke);
+            rect.setAttribute('stroke-width', strokeWidth);
+            rect.setAttribute('rx', '3');
+            svg.appendChild(rect);
+
+            // Index label
+            const textIdx = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textIdx.setAttribute('x', x + boxWidth / 2);
+            textIdx.setAttribute('y', y - 5);
+            textIdx.setAttribute('fill', 'var(--text-muted)');
+            textIdx.setAttribute('font-size', Math.max(10, boxWidth * 0.25) + 'px');
+            textIdx.setAttribute('text-anchor', 'middle');
+            textIdx.textContent = index;
+            svg.appendChild(textIdx);
+
+            // Value - using the new robust rendering
+            const textVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            textVal.setAttribute('x', x + boxWidth / 2);
+            textVal.setAttribute('y', y + boxHeight / 2 + 4);
+            textVal.setAttribute('fill', val === Infinity ? 'var(--text-muted)' : 'var(--text-main)');
+            textVal.setAttribute('font-size', Math.max(12, boxWidth * 0.32) + 'px');
+            textVal.setAttribute('text-anchor', 'middle');
+            textVal.setAttribute('font-weight', 'bold');
+
+            if (val === Infinity) {
+                textVal.textContent = '∞';
+            } else {
+                textVal.textContent = val;
+            }
+            svg.appendChild(textVal);
+        });
+
+        // Pointers
+        if (step.i !== undefined && step.i >= 0) {
+            const ix = startX + (step.i * (boxWidth + 3)) + boxWidth / 2;
+            const pointer = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            pointer.setAttribute('x', ix);
+            pointer.setAttribute('y', startY + boxHeight + 25);
+            pointer.setAttribute('fill', 'var(--highlight-accent)');
+            pointer.setAttribute('font-size', '14px');
+            pointer.setAttribute('text-anchor', 'middle');
+            pointer.setAttribute('font-weight', 'bold');
+            pointer.textContent = '↑ i=' + step.i;
+            svg.appendChild(pointer);
+        }
+
+        if (step.compareIdx !== undefined) {
+            const cx = startX + (step.compareIdx * (boxWidth + 3)) + boxWidth / 2;
+            const pointer = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            pointer.setAttribute('x', cx);
+            pointer.setAttribute('y', startY + boxHeight + 45);
+            pointer.setAttribute('fill', 'var(--highlight-compare)');
+            pointer.setAttribute('font-size', '12px');
+            pointer.setAttribute('text-anchor', 'middle');
+            pointer.textContent = `i-${step.coin}=${step.compareIdx}`;
+            svg.appendChild(pointer);
+        }
+
+        // Active Coin Indicator
+        if (step.coin !== undefined && step.coin !== -1) {
+            const coinIndicator = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            coinIndicator.setAttribute('x', requiredWidth - 20);
+            coinIndicator.setAttribute('y', startY + boxHeight + 65);
+            coinIndicator.setAttribute('fill', 'var(--accent-color)');
+            coinIndicator.setAttribute('font-size', '14px');
+            coinIndicator.setAttribute('font-weight', 'bold');
+            coinIndicator.setAttribute('text-anchor', 'end');
+            coinIndicator.textContent = '🪙 Active Coin: ' + step.coin;
+            svg.appendChild(coinIndicator);
+        }
+    }
+
+    function drawGrowthChart(w, n) {
+        const growthSvg = document.getElementById('growth-svg');
+        if (!growthSvg) return;
+
+        growthSvg.innerHTML = '';
+        
+        const svgWidth = growthSvg.clientWidth || 600;
+        const svgHeight = growthSvg.clientHeight || 200;
+        const margin = { top: 20, right: 20, bottom: 30, left: 50 };
+        const width = svgWidth - margin.left - margin.right;
+        const height = svgHeight - margin.top - margin.bottom;
+
+        if (w === 0 || n === 0) {
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', svgWidth / 2);
+            text.setAttribute('y', svgHeight / 2);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', 'var(--text-muted)');
+            text.setAttribute('font-size', '14px');
+            text.textContent = 'Build steps to see growth curves';
+            growthSvg.appendChild(text);
+            return;
+        }
+
+        const maxN = Math.max(15, w + 2);
+        const dpData = [];
+        const exponentialData = [];
+
+        for (let i = 1; i <= maxN; i++) {
+            dpData.push({ x: i, y: i * n });
+            exponentialData.push({ x: i, y: Math.pow(n, Math.min(i, 10)) }); // Capped at power of 10 for SVG stability
+        }
+
+        const dpMax = Math.max(...dpData.map(d => d.y));
+        const expMax = Math.max(...exponentialData.map(d => d.y));
+        const maxY = Math.max(dpMax, expMax);
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('transform', `translate(${margin.left},${margin.top})`);
+
+        // X axis
+        const xLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        xLine.setAttribute('x1', 0);
+        xLine.setAttribute('y1', height);
+        xLine.setAttribute('x2', width);
+        xLine.setAttribute('y2', height);
+        xLine.setAttribute('stroke', 'var(--border-color)');
+        xLine.setAttribute('stroke-width', '1');
+        g.appendChild(xLine);
+
+        // Y axis
+        const yLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        yLine.setAttribute('x1', 0);
+        yLine.setAttribute('y1', 0);
+        yLine.setAttribute('x2', 0);
+        yLine.setAttribute('y2', height);
+        yLine.setAttribute('stroke', 'var(--border-color)');
+        yLine.setAttribute('stroke-width', '1');
+        g.appendChild(yLine);
+
+        // Draw DP curve O(n*W)
+        let dpPath = '';
+        for (let i = 0; i < dpData.length; i++) {
+            const d = dpData[i];
+            const px = (d.x / maxN) * width;
+            const py = height - Math.min((d.y / maxY) * height, height);
+            dpPath += (i === 0 ? 'M' : 'L') + ` ${px},${py}`;
+        }
+        const dpLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        dpLine.setAttribute('d', dpPath);
+        dpLine.setAttribute('fill', 'none');
+        dpLine.setAttribute('stroke', 'var(--highlight-update)');
+        dpLine.setAttribute('stroke-width', '2.5');
+        dpLine.setAttribute('stroke-linecap', 'round');
+        dpLine.setAttribute('stroke-linejoin', 'round');
+        g.appendChild(dpLine);
+
+        // Draw exponential curve O(2^W) - full range
+        let expPath = '';
+        for (let i = 0; i < exponentialData.length; i++) {
+            const d = exponentialData[i];
+            const px = (d.x / maxN) * width;
+            const py = height - Math.min((d.y / maxY) * height, height);
+            expPath += (i === 0 ? 'M' : 'L') + ` ${px},${py}`;
+        }
+        const expLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        expLine.setAttribute('d', expPath);
+        expLine.setAttribute('fill', 'none');
+        expLine.setAttribute('stroke', 'var(--highlight-compare)');
+        expLine.setAttribute('stroke-width', '2.5');
+        expLine.setAttribute('stroke-dasharray', '5,3');
+        expLine.setAttribute('stroke-linecap', 'round');
+        expLine.setAttribute('stroke-linejoin', 'round');
+        g.appendChild(expLine);
+
+        // Y axis labels
+        for (let i = 0; i <= 4; i++) {
+            const y = (height / 4) * i;
+            const val = Math.floor((maxY / 4) * (4 - i));
+            const yLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            yLabel.setAttribute('x', -5);
+            yLabel.setAttribute('y', y + 4);
+            yLabel.setAttribute('text-anchor', 'end');
+            yLabel.setAttribute('fill', 'var(--text-muted)');
+            yLabel.setAttribute('font-size', '10px');
+            yLabel.textContent = val > 1000 ? (val / 1000).toFixed(0) + 'k' : val;
+            g.appendChild(yLabel);
+        }
+
+        // X axis labels
+        for (let i = 1; i <= Math.min(maxN, 10); i++) {
+            const x = (i / maxN) * width;
+            const xLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            xLabel.setAttribute('x', x);
+            xLabel.setAttribute('y', height + 15);
+            xLabel.setAttribute('text-anchor', 'middle');
+            xLabel.setAttribute('fill', 'var(--text-muted)');
+            xLabel.setAttribute('font-size', '10px');
+            xLabel.textContent = i;
+            g.appendChild(xLabel);
+        }
+
+        // Legend
+        const dpLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        dpLabel.setAttribute('x', 15);
+        dpLabel.setAttribute('y', -8);
+        dpLabel.setAttribute('fill', 'var(--highlight-update)');
+        dpLabel.setAttribute('font-size', '12px');
+        dpLabel.setAttribute('font-weight', 'bold');
+        dpLabel.textContent = `✓ O(n·W) DP [n=${n}, W=${w}]`;
+        g.appendChild(dpLabel);
+
+        const expLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        expLabel.setAttribute('x', width - 120);
+        expLabel.setAttribute('y', -8);
+        expLabel.setAttribute('fill', 'var(--highlight-compare)');
+        expLabel.setAttribute('font-size', '12px');
+        expLabel.setAttribute('font-weight', 'bold');
+        expLabel.textContent = `✗ O(n^W) Naive`;
+        g.appendChild(expLabel);
+
+        growthSvg.appendChild(g);
+    }
+
+    function updateUI() {
+        document.getElementById('step-counter').innerText = `Step: ${currentStepIdx} / ${steps.length}`;
+    }
+
+    function toggleSection(el) {
+        el.classList.toggle('active');
+        const content = el.nextElementSibling;
+        content.classList.toggle('show');
+    }
+
+    // Add click listener for pseudocode lines to mirror tooltiptext to step-table-desc
+    document.querySelectorAll('.pseudocode-line').forEach(line => {
+        line.addEventListener('click', function() {
+            const tooltip = this.querySelector('.tooltiptext');
+            if (tooltip) {
+                document.getElementById('step-table-desc').textContent = tooltip.textContent;
+            }
+        });
+    });
+</script>
+</body>
+</html>
